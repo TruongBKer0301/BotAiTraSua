@@ -1,0 +1,28 @@
+Column1,item_id,name,description,price_m,price_l,available
+Trà S?a,TS01,Trà S?a Trân Châu Ðen,Trà s?a thõm béo v?i trân châu ðen dai ngon,35000,45000,TRUE
+Trà S?a,TS02,Trà S?a Trân Châu Tr?ng,Trà s?a m?n v?i trân châu tr?ng thõm,35000,45000,TRUE
+Trà S?a,TS03,Trà S?a Truy?n Th?ng,Trà s?a nguyên ch?t không topping,30000,40000,TRUE
+Trà S?a,TS04,Trà S?a Khoai Môn,Trà s?a v? khoai môn h?p d?n,38000,48000,TRUE
+Trà S?a,TS05,Trà S?a B?c Hà,Trà s?a thõm mát b?c hà týõi,35000,45000,TRUE
+Trà Trái Cây,TTG01,Trà Dâu Tây,Trà týõi v?i v? dâu tây ng?t ngào,32000,42000,TRUE
+Trà Trái Cây,TTG02,Trà Mâm Xôi,Trà mâm xôi týõi mát gi?i khát,32000,42000,TRUE
+Trà Trái Cây,TTG03,Trà Chanh Leo,Trà chanh leo chua nh? s?ng khoái,30000,40000,TRUE
+Trà Trái Cây,TTG04,Trà V?i Thi?u,Trà v?i thi?u ng?t hýõng l?,33000,43000,TRUE
+Trà Trái Cây,TTG05,Trà Xoài,Trà xoài týõi thõm v? nhi?t ð?i,32000,42000,TRUE
+Cà Phê,CF01,Cà Phê Ðen,Cà phê ðen ð?m ðà truy?n th?ng,25000,30000,TRUE
+Cà Phê,CF02,Cà Phê S?a,Cà phê s?a béo ng?y h?nh phúc,28000,33000,TRUE
+Cà Phê,CF03,Cà Phê Caramel,Cà phê v?i ít caramel mý?t mà,30000,35000,TRUE
+Cà Phê,CF04,Cà Phê Mocha,Cà phê v?i chocolate ng?t d?u,32000,37000,TRUE
+Cà Phê,CF05,Cà Phê Macchiato,Cà phê espresso v?i ít s?a,27000,32000,TRUE
+Ðá Xay,DX01,Ðá Xay Dâu Tây,Ðá xay m?n v? dâu tây týõi mát,35000,45000,TRUE
+Ðá Xay,DX02,Ðá Xay D?a,Ðá xay v? d?a ng?t d? ch?u,35000,45000,TRUE
+Ðá Xay,DX03,Ðá Xay Matcha,Ðá xay matcha týõi gi?i khát,38000,48000,TRUE
+Ðá Xay,DX04,Ðá Xay Sôcôla,Ðá xay sôcôla ng?t thõm,36000,46000,TRUE
+Topping,TOP01,Trân Châu Ðen,Trân châu ðen dai ngon,5000,5000,TRUE
+Topping,TOP02,Trân Châu Tr?ng,Trân châu tr?ng m?m d?o,5000,5000,TRUE
+Topping,TOP03,Th?ch Cà Chua,Th?ch cà chua m?ng ný?c,4000,4000,TRUE
+Topping,TOP04,Th?ch Xanh,Th?ch xanh mát l?nh týõi,4000,4000,TRUE
+Topping,TOP05,Ný?c C?t D?a,Ný?c c?t d?a béo ng?y,6000,6000,TRUE
+Topping,TOP06,Kem Týõi,Kem týõi m?n ng?t d?u,8000,8000,TRUE
+Topping,TOP07,Gelée Khoai Môn,Gelée khoai môn v? ð?c ðáo,5000,5000,TRUE
+Topping,TOP08,B?t Trà Xanh,B?t trà xanh thõm ng?y,3000,3000,TRUE
