@@ -15,7 +15,7 @@ from urllib.parse import quote_plus
 import httpx
 from dotenv import load_dotenv
 from groq import Groq
-import pandas as pd
+from openpyxl import load_workbook
 from telegram import Update
 from telegram.error import Conflict, NetworkError
 from telegram.ext import (
@@ -74,9 +74,12 @@ def parse_bool(value: str) -> bool:
 
 
 def _safe_cell_text(value: object) -> str:
-	if pd.isna(value):
+	if value is None:
 		return ""
-	return str(value).strip()
+	if isinstance(value, float) and value != value:
+		return ""
+	text = str(value).strip()
+	return "" if text.lower() == "none" else text
 
 
 def _menu_item_from_row(row: Dict[str, object]) -> MenuItem:
@@ -101,8 +104,24 @@ def _menu_item_from_row(row: Dict[str, object]) -> MenuItem:
 def load_menu_from_xlsx(xlsx_file: Path) -> List[MenuItem]:
 	# Đọc toàn bộ menu từ file Excel và bỏ qua dòng lỗi để bot vẫn khởi động được.
 	menu_items: List[MenuItem] = []
-	df = pd.read_excel(xlsx_file)
-	rows = df.to_dict(orient="records")
+	workbook = load_workbook(xlsx_file, data_only=True, read_only=True)
+	sheet = workbook.active
+	rows_iter = sheet.iter_rows(values_only=True)
+	headers = next(rows_iter, None)
+	if not headers:
+		return menu_items
+
+	header_names = [str(header).strip() if header is not None else "" for header in headers]
+	rows = []
+	for row in rows_iter:
+		row_dict: Dict[str, object] = {}
+		for index, header_name in enumerate(header_names):
+			if not header_name:
+				continue
+			cell_value = row[index] if index < len(row) else None
+			row_dict[header_name] = cell_value
+			row_dict[header_name.lower()] = cell_value
+		rows.append(row_dict)
 
 	for row in rows:
 		try:
