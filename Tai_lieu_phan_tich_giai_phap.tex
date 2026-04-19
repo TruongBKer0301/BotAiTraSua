@@ -1,0 +1,312 @@
+\documentclass[12pt,a4paper]{article}
+
+% Compile with XeLaTeX
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{vietnamese}
+\setmainfont{Times New Roman}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue,
+    pdftitle={Tai lieu phan tich giai phap - He thong Datnuoc Bot},
+    pdfauthor={Nhom phat trien}
+}
+
+\setstretch{1.25}
+\setlist[itemize]{leftmargin=2em}
+\setlist[enumerate]{leftmargin=2em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Tài liệu phân tích giải pháp}
+\rhead{Datnuoc Bot}
+\cfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+\title{\textbf{TÀI LIỆU PHÂN TÍCH GIẢI PHÁP}\\[0.3em]
+\large Hệ thống chatbot đặt nước tích hợp thanh toán QR}
+\author{Dự án: Datnuoc Bot}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\Large \textbf{TÀI LIỆU PHÂN TÍCH GIẢI PHÁP} \par}
+    \vspace{0.7cm}
+    {\large Hệ thống chatbot đặt nước tích hợp thanh toán QR (Telegram + PayOS)\par}
+    \vspace{1.2cm}
+
+    \begin{tabular}{>{\bfseries}p{4cm}p{9cm}}
+        Tên dự án: & Datnuoc Bot \\
+        Phiên bản tài liệu: & 1.0 \\
+        Ngày phát hành: & \today \\
+        Người soạn: & Nhóm phát triển \\
+        Mục tiêu: & Phân tích hiện trạng, đề xuất giải pháp, kiến trúc và kế hoạch triển khai \\
+    \end{tabular}
+
+    \vfill
+    {\small Tài liệu nội bộ phục vụ phân tích và triển khai hệ thống.\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Giới thiệu}
+\subsection{Bối cảnh}
+Quán nước cần một kênh bán hàng tự động để:
+\begin{itemize}
+    \item Tiếp nhận đơn hàng nhanh qua Telegram.
+    \item Hạn chế nhầm lẫn khi ghi đơn thủ công.
+    \item Tự động tạo QR thanh toán và theo dõi trạng thái chuyển khoản.
+    \item Cải thiện trải nghiệm khách hàng với luồng hội thoại rõ ràng.
+\end{itemize}
+
+\subsection{Mục tiêu tài liệu}
+Tài liệu này trình bày đầy đủ:
+\begin{itemize}
+    \item Phân tích yêu cầu nghiệp vụ và kỹ thuật.
+    \item Phân tích hiện trạng mã nguồn và các điểm rủi ro.
+    \item Đề xuất giải pháp kỹ thuật khả thi.
+    \item Kiến trúc hệ thống, luồng dữ liệu và tiêu chí kiểm thử.
+\end{itemize}
+
+\section{Phạm vi}
+\subsection{Trong phạm vi}
+\begin{itemize}
+    \item Bot Telegram nhận đơn theo hội thoại nhiều bước.
+    \item Đọc menu từ tệp dữ liệu (Excel).
+    \item Xử lý món, size, topping, số lượng và tổng tiền.
+    \item Tạo link thanh toán PayOS và hiển thị QR cho khách.
+    \item Theo dõi trạng thái thanh toán để phản hồi kết quả cho khách.
+\end{itemize}
+
+\subsection{Ngoài phạm vi}
+\begin{itemize}
+    \item Quản trị tồn kho thời gian thực.
+    \item Tích hợp CRM hoặc hệ thống vận chuyển.
+    \item Dashboard phân tích BI nâng cao.
+\end{itemize}
+
+\section{Phân tích yêu cầu}
+\subsection{Yêu cầu chức năng}
+\begin{longtable}{p{1.5cm}p{4cm}p{8.5cm}}
+\toprule
+\textbf{Mã} & \textbf{Chức năng} & \textbf{Mô tả} \\
+\midrule
+FR-01 & Khởi tạo đơn hàng & Bot hiển thị menu, hướng dẫn khách chọn món. \\
+FR-02 & Chọn món linh hoạt & Cho phép chọn bằng số thứ tự, tên món hoặc mã món. \\
+FR-03 & Chọn size và topping & Hỗ trợ nhập gộp hoặc tách bước, có kiểm tra dữ liệu. \\
+FR-04 & Quản lý giỏ hàng & Tính tiền theo từng dòng món và tổng cộng toàn đơn. \\
+FR-05 & Xác nhận đơn & Khách xác nhận hoặc hủy đơn trước thanh toán. \\
+FR-06 & Tạo QR thanh toán & Sinh yêu cầu thanh toán PayOS theo số điện thoại khách cung cấp. \\
+FR-07 & Theo dõi thanh toán & Poll trạng thái thanh toán và gửi thông báo khi thành công. \\
+FR-08 & Gợi ý món bằng AI & Cung cấp gợi ý qua mô hình Groq theo ràng buộc khách đưa ra. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Yêu cầu phi chức năng}
+\begin{longtable}{p{1.8cm}p{10.5cm}}
+\toprule
+\textbf{Nhóm} & \textbf{Yêu cầu} \\
+\midrule
+Hiệu năng & Phản hồi hội thoại dưới 2 giây cho tác vụ nội bộ; dưới 5 giây cho tác vụ API ngoài trong điều kiện mạng ổn định. \\
+Tin cậy & Có cơ chế bắt lỗi mạng tạm thời, log cảnh báo và cho phép retry. \\
+Bảo mật & Không hard-code khóa API; quản lý bằng biến môi trường (.env). \\
+Mở rộng & Tách các hàm xử lý nghiệp vụ để dễ bổ sung tính năng (khuyến mãi, voucher, lưu lịch sử). \\
+Khả dụng & Luồng hội thoại có fallback rõ ràng khi người dùng nhập sai định dạng. \\
+\bottomrule
+\end{longtable}
+
+\section{Phân tích hiện trạng giải pháp}
+\subsection{Công nghệ hiện có}
+\begin{itemize}
+    \item Ngôn ngữ: Python.
+    \item Nền tảng bot: python-telegram-bot.
+    \item Thanh toán: PayOS (REST API).
+    \item Đọc menu: openpyxl từ tệp Excel.
+    \item Gợi ý AI: Groq API.
+\end{itemize}
+
+\subsection{Luồng nghiệp vụ hiện tại}
+\begin{enumerate}
+    \item Khách vào lệnh \texttt{/start}, bot gửi menu và hướng dẫn.
+    \item Khách chọn món, size, topping, số lượng.
+    \item Bot tổng hợp giỏ hàng và yêu cầu xác nhận đơn.
+    \item Khách nhập số điện thoại thanh toán.
+    \item Bot tạo QR PayOS và gửi cho khách.
+    \item Bot theo dõi trạng thái đơn; khi thành công gửi thông báo xác nhận chuyển khoản.
+\end{enumerate}
+
+\subsection{Điểm mạnh}
+\begin{itemize}
+    \item Luồng đặt hàng đã bám sát nghiệp vụ quán nước.
+    \item Có cơ chế xử lý nhập tự nhiên (không bắt người dùng nhập quá cứng nhắc).
+    \item Có tích hợp thanh toán thực tế và phản hồi tự động.
+\end{itemize}
+
+\subsection{Hạn chế và rủi ro}
+\begin{itemize}
+    \item Chưa có lớp lưu trữ đơn hàng bền vững (database) để tra cứu lịch sử.
+    \item Phụ thuộc vào kết nối mạng/API ngoài (Telegram, PayOS, Groq).
+    \item Chưa có cơ chế hàng đợi hoặc retry nâng cao theo cấp độ lỗi.
+\end{itemize}
+
+\section{Đề xuất giải pháp}
+\subsection{Giải pháp kiến trúc tổng thể}
+\begin{itemize}
+    \item Giữ kiến trúc bot theo mô hình hội thoại trạng thái (state machine) để dễ kiểm soát.
+    \item Chuẩn hóa các module theo chức năng: menu, cart, payment, ai suggestion, message templates.
+    \item Bổ sung lớp lưu trữ (SQLite/PostgreSQL) cho đơn hàng và audit log.
+\end{itemize}
+
+\subsection{Luồng xử lý thanh toán đề xuất}
+\begin{enumerate}
+    \item Tạo payment request với đầy đủ thông tin đơn.
+    \item Gửi QR và link checkout cho khách.
+    \item Khởi tạo tiến trình theo dõi trạng thái đơn (poll theo chu kỳ).
+    \item Khi trạng thái là \texttt{PAID/SUCCESS}: gửi thông báo xác nhận.
+    \item Khi trạng thái \texttt{CANCELLED/EXPIRED/FAILED}: kết thúc theo dõi và ghi log.
+\end{enumerate}
+
+\subsection{Nội dung thông báo thành công}
+Thông báo chuẩn sau khi khách chuyển khoản thành công:
+\begin{center}
+\fcolorbox{black}{gray!10}{\parbox{0.85\linewidth}{\centering
+\textbf{Bạn đã chuyển khoản thành công, Quán sẽ gọi cho bạn ngay !}
+}}
+\end{center}
+
+\section{Thiết kế kỹ thuật chi tiết}
+\subsection{Mô hình dữ liệu logic}
+\begin{longtable}{p{3.2cm}p{3.5cm}p{5.5cm}}
+\toprule
+\textbf{Thực thể} & \textbf{Thuộc tính chính} & \textbf{Ghi chú} \\
+\midrule
+MenuItem & item\_id, name, category, price\_m, price\_l, available & Dữ liệu món và topping. \\
+CartLine & item\_id, size, quantity, toppings & Một dòng trong giỏ hàng người dùng. \\
+PaymentRequest & order\_code, amount, phone, status & Liên kết với dữ liệu thanh toán PayOS. \\
+ConversationState & current\_item, pending\_items, flags & Trạng thái tạm theo user\_session. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Thuật toán tính tiền}
+Giả sử:
+\begin{itemize}
+    \item $P_{base}$ là giá món theo size.
+    \item $P_{top}$ là tổng giá topping trên một ly.
+    \item $Q$ là số lượng ly.
+\end{itemize}
+Khi đó thành tiền một dòng:
+\[
+T_{line} = (P_{base} + P_{top}) \times Q
+\]
+Tổng đơn:
+\[
+T_{order} = \sum_{i=1}^{n} T_{line,i}
+\]
+
+\subsection{Định nghĩa trạng thái hội thoại}
+\begin{longtable}{p{3.5cm}p{7.5cm}}
+\toprule
+\textbf{State} & \textbf{Ý nghĩa} \\
+\midrule
+SELECT\_CATEGORY & Chờ người dùng chọn món. \\
+SELECT\_SIZE & Chờ chọn size món hiện tại. \\
+ADD\_TOPPING & Chờ xác nhận topping. \\
+SELECT\_QUANTITY & Chờ nhập số lượng. \\
+CONFIRM & Chờ xác nhận đơn / thêm món. \\
+PAYMENT\_PHONE & Chờ nhập số điện thoại để tạo QR. \\
+\bottomrule
+\end{longtable}
+
+\section{Kế hoạch kiểm thử}
+\subsection{Kiểm thử chức năng}
+\begin{longtable}{p{1.7cm}p{8.8cm}p{2.3cm}}
+\toprule
+\textbf{TC} & \textbf{Mô tả} & \textbf{Kỳ vọng} \\
+\midrule
+TC-01 & Chọn món bằng số thứ tự hợp lệ & Bot nhận diện đúng món và chuyển bước size. \\
+TC-02 & Nhập size không hợp lệ & Bot báo lỗi và yêu cầu nhập lại. \\
+TC-03 & Nhập topping không tồn tại & Bot báo lỗi nhận diện topping. \\
+TC-04 & Xác nhận đơn và tạo QR & Bot trả QR + mã đơn + link thanh toán. \\
+TC-05 & PayOS trả trạng thái thanh toán thành công & Bot gửi thông báo: ``Bạn đã chuyển khoản thành công, Quán sẽ gọi cho bạn ngay !'' \\
+TC-06 & Đơn hết hạn/thất bại & Bot dừng theo dõi, không gửi thông báo thành công. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Kiểm thử phi chức năng}
+\begin{itemize}
+    \item Stress test đồng thời nhiều phiên chat.
+    \item Kiểm thử timeout API ngoài (PayOS/Groq).
+    \item Kiểm thử khả năng khôi phục sau lỗi mạng tạm thời.
+\end{itemize}
+
+\section{Kế hoạch triển khai}
+\begin{enumerate}
+    \item Chuẩn hóa biến môi trường và tách cấu hình theo môi trường chạy.
+    \item Đóng gói ứng dụng (venv, requirements, script khởi chạy).
+    \item Thiết lập log tập trung và cảnh báo lỗi.
+    \item Triển khai môi trường production (VPS/container).
+    \item Theo dõi sau triển khai và tinh chỉnh theo phản hồi thực tế.
+\end{enumerate}
+
+\section{Đánh giá hiệu quả kỳ vọng}
+\begin{itemize}
+    \item Rút ngắn thời gian chốt đơn so với quy trình thủ công.
+    \item Giảm sai sót trong ghi nhận món, size, topping.
+    \item Tăng tỷ lệ thanh toán thành công nhờ quy trình QR rõ ràng.
+    \item Nâng trải nghiệm khách hàng với phản hồi tự động theo thời gian thực.
+\end{itemize}
+
+\section{Kết luận}
+Giải pháp chatbot đặt nước tích hợp PayOS là hướng triển khai phù hợp cho quán nước quy mô nhỏ đến vừa, nhờ chi phí triển khai hợp lý, tốc độ phản hồi tốt và khả năng mở rộng chức năng theo từng giai đoạn. Với việc chuẩn hóa luồng hội thoại, bổ sung theo dõi trạng thái thanh toán và thông báo xác nhận đúng thời điểm, hệ thống đáp ứng được mục tiêu vận hành thực tế và cải thiện trải nghiệm khách hàng.
+
+\appendix
+\section{Phụ lục A - Danh sách biến môi trường đề xuất}
+\begin{longtable}{p{4.2cm}p{7.8cm}}
+\toprule
+\textbf{Biến} & \textbf{Mô tả} \\
+\midrule
+TELEGRAM\_BOT\_TOKEN & Token bot Telegram. \\
+PAYOS\_CLIENT\_ID & Client ID PayOS. \\
+PAYOS\_API\_KEY & API Key PayOS. \\
+PAYOS\_CHECKSUM\_KEY & Checksum Key để ký yêu cầu. \\
+PAYOS\_API\_BASE\_URL & Endpoint PayOS API. \\
+PAYOS\_RETURN\_URL & URL redirect khi thanh toán thành công. \\
+PAYOS\_CANCEL\_URL & URL redirect khi khách hủy thanh toán. \\
+GROQ\_API\_KEY & API key cho tính năng gợi ý AI. \\
+PAYOS\_STATUS\_POLL\_INTERVAL\_SECONDS & Chu kỳ kiểm tra trạng thái thanh toán. \\
+PAYOS\_STATUS\_POLL\_TIMEOUT\_SECONDS & Thời gian tối đa theo dõi trạng thái. \\
+\bottomrule
+\end{longtable}
+
+\section{Phụ lục B - Hướng dẫn biên dịch}
+Sử dụng XeLaTeX để biên dịch tài liệu do có nội dung tiếng Việt Unicode:
+\begin{itemize}
+    \item Lệnh 1: \texttt{xelatex Tai\_lieu\_phan\_tich\_giai\_phap.tex}
+    \item Lệnh 2: chạy lại lệnh trên 1 lần nữa để ổn định mục lục.
+\end{itemize}
+
+\end{document}

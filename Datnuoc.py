@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import asyncio
 import os
 import hashlib
@@ -148,6 +148,32 @@ MENU_ITEMS = load_menu()
 ITEM_BY_ID: Dict[str, MenuItem] = {i.item_id: i for i in MENU_ITEMS if i.available}
 TOPPINGS = [i for i in MENU_ITEMS if i.available and i.category == "Topping"]
 DRINK_ITEMS = [i for i in MENU_ITEMS if i.available and i.category != "Topping"]
+AI_GROQ_HINT = "Gợi ý nhanh: dùng /goiy <tất cả yêu cầu của bạn>"
+
+
+def with_ai_hint(text: str) -> str:
+	content = (text or "").strip()
+	if not content:
+		return AI_GROQ_HINT
+	if AI_GROQ_HINT in content:
+		return content
+	return f"{content}\n\n{AI_GROQ_HINT}"
+
+
+async def reply_text_with_hint(message, text: str, **kwargs) -> None:
+	await message.reply_text(with_ai_hint(text), **kwargs)
+
+
+async def send_message_with_hint(chat, text: str, **kwargs) -> None:
+	await chat.send_message(with_ai_hint(text), **kwargs)
+
+
+async def send_bot_message_with_hint(bot, chat_id: int, text: str, **kwargs) -> None:
+	await bot.send_message(chat_id=chat_id, text=with_ai_hint(text), **kwargs)
+
+
+async def reply_photo_with_hint(message, photo, caption: str = "", **kwargs) -> None:
+	await message.reply_photo(photo=photo, caption=with_ai_hint(caption), **kwargs)
 
 
 def get_groq_client() -> Optional[Groq]:
@@ -212,9 +238,9 @@ async def send_menu_then_options(chat) -> None:
 		with open(MENU_IMAGE_FILE, "rb") as photo:
 			await chat.send_photo(photo=photo)
 	else:
-		await chat.send_message(build_menu_preview())
+		await send_message_with_hint(chat, build_menu_preview())
 
-	await chat.send_message(
+	await send_message_with_hint(chat, 
 		"VUI LÒNG CHỌN MÓN ❤️.\n"
 		"Bạn có thể nhập gộp tên món, size và topping trong một tin nhắn.\n"
 		"Ví dụ: 5 hồng trà trân châu 3 size m 2 size l, 2 kem tươi, 2 sữa dừa\n"
@@ -227,9 +253,10 @@ async def send_menu_image(chat) -> None:
 	if MENU_IMAGE_FILE.exists():
 		with open(MENU_IMAGE_FILE, "rb") as photo:
 			await chat.send_photo(photo=photo)
+		await send_message_with_hint(chat, "Đã gửi menu cho bạn.")
 		return
 
-	await chat.send_message(build_menu_preview())
+	await send_message_with_hint(chat, build_menu_preview())
 
 
 def wants_menu_image(text: str) -> bool:
@@ -433,7 +460,7 @@ async def monitor_payos_payment(
 			continue
 
 		if status in paid_statuses:
-			await context.bot.send_message(
+			await send_bot_message_with_hint(context.bot, 
 				chat_id=chat_id,
 				text="Bạn đã chuyển khoản thành công, Quán sẽ gọi cho bạn ngay !",
 			)
@@ -881,7 +908,7 @@ async def prompt_next_item_or_confirm(update: Update, context: ContextTypes.DEFA
 		next_item = ITEM_BY_ID.get(pending_item_ids[0])
 		if not next_item:
 			if update.message:
-				await update.message.reply_text("Có lỗi dữ liệu món. Gõ /start để đặt lại.")
+				await reply_text_with_hint(update.message, "Có lỗi dữ liệu món. Gõ /start để đặt lại.")
 			return ConversationHandler.END
 
 		context.user_data["current_item_id"] = next_item.item_id
@@ -889,7 +916,7 @@ async def prompt_next_item_or_confirm(update: Update, context: ContextTypes.DEFA
 		context.user_data["awaiting_topping_selection"] = False
 		progress = get_progress_text(context)
 		if update.message:
-			await update.message.reply_text(
+			await reply_text_with_hint(update.message, 
 				f"{progress}: {next_item.name}\n"
 				f"Mô tả: {next_item.description}\n"
 				f"{build_size_topping_prompt(next_item)}\n"
@@ -906,7 +933,7 @@ async def prompt_next_item_or_confirm(update: Update, context: ContextTypes.DEFA
 	context.user_data.pop("awaiting_confirm_topping_quantity", None)
 	context.user_data.pop("pending_confirm_topping_ids", None)
 	if update.message:
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			f"{summary}\n\n"
 			"Bạn có muốn đặt thêm món không?\n"
 			"- Nhập tên/mã/số món để thêm món\n"
@@ -960,7 +987,7 @@ async def on_select_items_by_text(update: Update, context: ContextTypes.DEFAULT_
 	try:
 		selected_item_ids = parse_item_selection_input(text)
 	except ValueError as exc:
-		await update.message.reply_text(str(exc))
+		await reply_text_with_hint(update.message, str(exc))
 		await send_menu_image(update.message.chat)
 		return SELECT_CATEGORY
 
@@ -971,7 +998,7 @@ async def on_select_items_by_text(update: Update, context: ContextTypes.DEFAULT_
 
 	item = ITEM_BY_ID.get(selected_item_ids[0])
 	if item is None:
-		await update.message.reply_text("Món không hợp lệ. Gõ /start để đặt lại.")
+		await reply_text_with_hint(update.message, "Món không hợp lệ. Gõ /start để đặt lại.")
 		return ConversationHandler.END
 
 	context.user_data["current_item_id"] = item.item_id
@@ -1004,7 +1031,7 @@ async def on_select_items_by_text(update: Update, context: ContextTypes.DEFAULT_
 				return await prompt_next_item_or_confirm(update, context)
 
 	progress = get_progress_text(context)
-	await update.message.reply_text(
+	await reply_text_with_hint(update.message, 
 		f"{progress}: {item.name}\n"
 		f"Mô tả: {item.description}\n"
 		f"{build_size_topping_prompt(item)}\n"
@@ -1027,7 +1054,7 @@ async def on_select_size_by_text(update: Update, context: ContextTypes.DEFAULT_T
 	if size_variants:
 		current_item_id = context.user_data.get("current_item_id")
 		if not current_item_id or current_item_id not in ITEM_BY_ID:
-			await update.message.reply_text("Không xác định được món hiện tại. Gõ /start để đặt lại.")
+			await reply_text_with_hint(update.message, "Không xác định được món hiện tại. Gõ /start để đặt lại.")
 			return ConversationHandler.END
 
 		topping_ids = extract_topping_ids_with_quantity(text)
@@ -1055,11 +1082,11 @@ async def on_select_size_by_text(update: Update, context: ContextTypes.DEFAULT_T
 		current_item_id = context.user_data.get("current_item_id")
 		item = ITEM_BY_ID.get(str(current_item_id)) if current_item_id else None
 		if item:
-			await update.message.reply_text(
+			await reply_text_with_hint(update.message, 
 				f"{exc}\n{build_size_topping_prompt(item)}\n{ask_groq_for_order_prompt('size_topping', item)}"
 			)
 		else:
-			await update.message.reply_text(str(exc))
+			await reply_text_with_hint(update.message, str(exc))
 		return SELECT_SIZE
 
 	context.user_data["current_size"] = size
@@ -1067,11 +1094,11 @@ async def on_select_size_by_text(update: Update, context: ContextTypes.DEFAULT_T
 	context.user_data["current_toppings"] = topping_ids
 	if topping_ids:
 		context.user_data["awaiting_topping_selection"] = False
-		await update.message.reply_text("Anh/chị muốn đặt topping này với số lượng bao nhiêu ạ?")
+		await reply_text_with_hint(update.message, "Anh/chị muốn đặt topping này với số lượng bao nhiêu ạ?")
 		return SELECT_QUANTITY
 
 	context.user_data["awaiting_topping_selection"] = True
-	await update.message.reply_text(ask_groq_for_order_prompt("topping_followup"))
+	await reply_text_with_hint(update.message, ask_groq_for_order_prompt("topping_followup"))
 	return ADD_TOPPING
 
 
@@ -1098,18 +1125,18 @@ async def on_quantity_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 			if updated_topping_ids:
 				context.user_data["pending_confirm_topping_ids"] = updated_topping_ids
-				await update.message.reply_text(
+				await reply_text_with_hint(update.message, 
 					f"Đã nhận topping: {format_topping_ids_for_text(updated_topping_ids)}. "
 					"Vui lòng nhập số lượng topping."
 				)
 				return SELECT_QUANTITY
 
-			await update.message.reply_text("Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
+			await reply_text_with_hint(update.message, "Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
 			return SELECT_QUANTITY
 
 		quantity = int(match.group(0))
 		if quantity <= 0:
-			await update.message.reply_text("Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
+			await reply_text_with_hint(update.message, "Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
 			return SELECT_QUANTITY
 
 		cart: List[Dict[str, object]] = context.user_data.get("cart", [])
@@ -1117,7 +1144,7 @@ async def on_quantity_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 		if not cart or not confirm_topping_ids:
 			context.user_data.pop("awaiting_confirm_topping_quantity", None)
 			context.user_data.pop("pending_confirm_topping_ids", None)
-			await update.message.reply_text("Không tìm thấy món để thêm topping. Vui lòng chọn món lại.")
+			await reply_text_with_hint(update.message, "Không tìm thấy món để thêm topping. Vui lòng chọn món lại.")
 			return CONFIRM
 
 		last_row = cart[-1]
@@ -1130,7 +1157,7 @@ async def on_quantity_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 		context.user_data.pop("pending_confirm_topping_ids", None)
 
 		summary = build_order_summary(context)
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			f"Đã thêm topping cho món gần nhất.\n\n{summary}\n\n"
 			"Bạn có muốn đặt thêm món không?\n"
 			"- Nhập tên/mã/số món để thêm món\n"
@@ -1149,14 +1176,14 @@ async def on_quantity_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 					if context.user_data.get("cart") and not context.user_data.get("pending_item_ids"):
 						# Tránh rơi lỗi khi state còn SELECT_QUANTITY nhưng thực tế đã quay về CONFIRM.
 						return await prompt_next_item_or_confirm(update, context)
-					await update.message.reply_text("Không xác định được món hiện tại. Gõ /start để đặt lại.")
+					await reply_text_with_hint(update.message, "Không xác định được món hiện tại. Gõ /start để đặt lại.")
 					return ConversationHandler.END
 
 				context.user_data["current_quantity"] = quantity
 				add_current_item_to_cart(context, context.user_data.get("current_toppings", []))
 				return await prompt_next_item_or_confirm(update, context)
 
-		await update.message.reply_text("Số lượng không hợp lệ. Vui lòng nhập số nguyên dương.")
+		await reply_text_with_hint(update.message, "Số lượng không hợp lệ. Vui lòng nhập số nguyên dương.")
 		return SELECT_QUANTITY
 
 	current_item_id = context.user_data.get("current_item_id")
@@ -1164,7 +1191,7 @@ async def on_quantity_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 		if context.user_data.get("cart") and not context.user_data.get("pending_item_ids"):
 			# Tránh rơi lỗi khi state còn SELECT_QUANTITY nhưng thực tế đã quay về CONFIRM.
 			return await prompt_next_item_or_confirm(update, context)
-		await update.message.reply_text("Không xác định được món hiện tại. Gõ /start để đặt lại.")
+		await reply_text_with_hint(update.message, "Không xác định được món hiện tại. Gõ /start để đặt lại.")
 		return ConversationHandler.END
 
 	context.user_data["current_quantity"] = int(text)
@@ -1184,14 +1211,14 @@ async def on_add_topping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 	try:
 		topping_ids = parse_topping_input(text)
 	except ValueError as exc:
-		await update.message.reply_text(f"{exc}\n{ask_groq_for_order_prompt('topping_followup')}")
+		await reply_text_with_hint(update.message, f"{exc}\n{ask_groq_for_order_prompt('topping_followup')}")
 		return ADD_TOPPING
 
 	pending_variants: List[tuple[str, int]] = context.user_data.pop("pending_size_variants", [])
 	if pending_variants:
 		current_item_id = context.user_data.get("current_item_id")
 		if not current_item_id or current_item_id not in ITEM_BY_ID:
-			await update.message.reply_text("Không xác định được món hiện tại. Gõ /start để đặt lại.")
+			await reply_text_with_hint(update.message, "Không xác định được món hiện tại. Gõ /start để đặt lại.")
 			return ConversationHandler.END
 
 		for size, qty in pending_variants:
@@ -1214,7 +1241,7 @@ async def on_add_topping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 		add_current_item_to_cart(context, [])
 		return await prompt_next_item_or_confirm(update, context)
 
-	await update.message.reply_text("Anh/chị muốn đặt topping này với số lượng bao nhiêu ạ?")
+	await reply_text_with_hint(update.message, "Anh/chị muốn đặt topping này với số lượng bao nhiêu ạ?")
 	return SELECT_QUANTITY
 
 
@@ -1229,12 +1256,12 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 	text = normalize_text(update.message.text or "")
 	if text in {"huy", "huy don", "cancel"}:
 		context.user_data.clear()
-		await update.message.reply_text("Đã hủy đơn hàng.")
+		await reply_text_with_hint(update.message, "Đã hủy đơn hàng.")
 		return ConversationHandler.END
 
 	if text in {"xac nhan", "xac nhan dat", "ok", "dong y"}:
 		context.user_data["awaiting_payment_phone"] = True
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			"Nhập số điện thoại thanh toán để tạo QR PayOS. "
 			"Nội dung thanh toán sẽ là số điện thoại đó."
 		)
@@ -1246,12 +1273,12 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 	if context.user_data.get("awaiting_confirm_topping_quantity"):
 		match = re.search(r"\b\d+\b", normalize_text(raw_text))
 		if not match:
-			await update.message.reply_text("Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
+			await reply_text_with_hint(update.message, "Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
 			return CONFIRM
 
 		quantity = int(match.group(0))
 		if quantity <= 0:
-			await update.message.reply_text("Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
+			await reply_text_with_hint(update.message, "Số lượng topping không hợp lệ. Vui lòng nhập số nguyên dương.")
 			return CONFIRM
 
 		cart: List[Dict[str, object]] = context.user_data.get("cart", [])
@@ -1259,7 +1286,7 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 		if not cart or not confirm_topping_ids:
 			context.user_data.pop("awaiting_confirm_topping_quantity", None)
 			context.user_data.pop("pending_confirm_topping_ids", None)
-			await update.message.reply_text("Không tìm thấy món để thêm topping. Vui lòng chọn món lại.")
+			await reply_text_with_hint(update.message, "Không tìm thấy món để thêm topping. Vui lòng chọn món lại.")
 			return CONFIRM
 
 		last_row = cart[-1]
@@ -1272,7 +1299,7 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 		context.user_data.pop("pending_confirm_topping_ids", None)
 
 		summary = build_order_summary(context)
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			f"Đã thêm topping cho món gần nhất.\n\n{summary}\n\n"
 			"Bạn có muốn đặt thêm món không?\n"
 			"- Nhập tên/mã/số món để thêm món\n"
@@ -1285,18 +1312,18 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 		try:
 			confirm_topping_ids = parse_topping_input(raw_text)
 		except ValueError as exc:
-			await update.message.reply_text(f"{exc}\nVui lòng nhập tên topping cần thêm hoặc gõ 'không'.")
+			await reply_text_with_hint(update.message, f"{exc}\nVui lòng nhập tên topping cần thêm hoặc gõ 'không'.")
 			return CONFIRM
 
 		if not confirm_topping_ids:
 			context.user_data.pop("awaiting_confirm_topping_name", None)
-			await update.message.reply_text("Đã bỏ qua thêm topping. Bạn có thể nhập món mới hoặc 'xác nhận'.")
+			await reply_text_with_hint(update.message, "Đã bỏ qua thêm topping. Bạn có thể nhập món mới hoặc 'xác nhận'.")
 			return CONFIRM
 
 		context.user_data.pop("awaiting_confirm_topping_name", None)
 		context.user_data["awaiting_confirm_topping_quantity"] = True
 		context.user_data["pending_confirm_topping_ids"] = confirm_topping_ids
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			f"Đã nhận topping: {format_topping_ids_for_text(confirm_topping_ids)}. "
 			"Bạn muốn thêm topping này bao nhiêu phần? Vui lòng nhập số lượng."
 		)
@@ -1305,11 +1332,11 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 	if wants_add_topping_request(raw_text):
 		cart: List[Dict[str, object]] = context.user_data.setdefault("cart", [])
 		if not cart:
-			await update.message.reply_text("Giỏ hàng đang trống, vui lòng nhập món trước khi thêm topping.")
+			await reply_text_with_hint(update.message, "Giỏ hàng đang trống, vui lòng nhập món trước khi thêm topping.")
 			return CONFIRM
 
 		context.user_data["awaiting_confirm_topping_name"] = True
-		await update.message.reply_text("Bạn muốn thêm topping gì cho món gần nhất? (Gõ 'không' nếu không thêm nữa)")
+		await reply_text_with_hint(update.message, "Bạn muốn thêm topping gì cho món gần nhất? (Gõ 'không' nếu không thêm nữa)")
 		return CONFIRM
 
 	# Ở bước CONFIRM, nếu user nhập topping thì hỏi số lượng topping.
@@ -1321,12 +1348,12 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 	if confirm_topping_ids:
 		cart: List[Dict[str, object]] = context.user_data.setdefault("cart", [])
 		if not cart:
-			await update.message.reply_text("Giỏ hàng đang trống, vui lòng nhập món trước khi thêm topping.")
+			await reply_text_with_hint(update.message, "Giỏ hàng đang trống, vui lòng nhập món trước khi thêm topping.")
 			return CONFIRM
 
 		context.user_data["awaiting_confirm_topping_quantity"] = True
 		context.user_data["pending_confirm_topping_ids"] = confirm_topping_ids
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			f"Đã nhận topping: {format_topping_ids_for_text(confirm_topping_ids)}. "
 			"Bạn muốn thêm topping này bao nhiêu phần? Vui lòng nhập số lượng."
 		)
@@ -1336,7 +1363,7 @@ async def on_confirm_by_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 	try:
 		new_item_ids = parse_item_selection_input(raw_text)
 	except ValueError:
-		await update.message.reply_text("Vui lòng nhập tên/mã/số món để thêm, hoặc nhập 'xác nhận' / 'hủy'.")
+		await reply_text_with_hint(update.message, "Vui lòng nhập tên/mã/số món để thêm, hoặc nhập 'xác nhận' / 'hủy'.")
 		return CONFIRM
 
 	pending_item_ids: List[str] = context.user_data.setdefault("pending_item_ids", [])
@@ -1362,16 +1389,16 @@ async def on_payment_phone_input(update: Update, context: ContextTypes.DEFAULT_T
 
 	phone_number = sanitize_phone_number(text)
 	if not phone_number:
-		await update.message.reply_text("Số điện thoại không hợp lệ. Vui lòng nhập lại số điện thoại thanh toán.")
+		await reply_text_with_hint(update.message, "Số điện thoại không hợp lệ. Vui lòng nhập lại số điện thoại thanh toán.")
 		return PAYMENT_PHONE
 
-	await update.message.reply_text("Đang tạo QR PayOS, vui lòng chờ...")
+	await reply_text_with_hint(update.message, "Đang tạo QR PayOS, vui lòng chờ...")
 
 	try:
 		payment_data = await to_thread(create_payos_payment_link, context, phone_number)
 	except Exception as exc:
 		logger.exception("Loi tao QR PayOS: %s", exc)
-		await update.message.reply_text(f"Không tạo được QR PayOS: {exc}")
+		await reply_text_with_hint(update.message, f"Không tạo được QR PayOS: {exc}")
 		return PAYMENT_PHONE
 
 	qr_data = str(payment_data.get("qrCode") or payment_data.get("checkoutUrl") or "")
@@ -1389,9 +1416,9 @@ async def on_payment_phone_input(update: Update, context: ContextTypes.DEFAULT_T
 		caption_lines.append(f"Link thanh toán: {checkout_url}")
 
 	if qr_data:
-		await update.message.reply_photo(photo=build_qr_image_url(qr_data), caption="\n".join(caption_lines))
+		await reply_photo_with_hint(update.message, photo=build_qr_image_url(qr_data), caption="\n".join(caption_lines))
 	else:
-		await update.message.reply_text("\n".join(caption_lines))
+		await reply_text_with_hint(update.message, "\n".join(caption_lines))
 
 	if order_code is not None and update.effective_chat:
 		asyncio.create_task(
@@ -1409,7 +1436,7 @@ async def on_payment_phone_input(update: Update, context: ContextTypes.DEFAULT_T
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 	context.user_data.clear()
 	if update.message:
-		await update.message.reply_text("Đã hủy đơn hàng.")
+		await reply_text_with_hint(update.message, "Đã hủy đơn hàng.")
 	return ConversationHandler.END
 
 
@@ -1437,19 +1464,19 @@ async def suggest_with_groq(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 	request_text = " ".join(context.args).strip() if context.args else ""
 	if not request_text:
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			"Dùng: /goiy <tất cả yêu cầu của bạn>\n"
 			"Ví dụ: /goiy tôi muốn món ít ngọt, mát lạnh, dưới 45k, thêm topping thạch"
 		)
 		return
 
-	await update.message.reply_text("Đang gợi ý bằng Groq...")
+	await reply_text_with_hint(update.message, "Đang gợi ý bằng Groq...")
 	try:
 		result = await to_thread(ask_groq_for_recommendation, request_text)
-		await update.message.reply_text(result)
+		await reply_text_with_hint(update.message, result)
 	except Exception as exc:
 		logger.exception("Loi goi Groq API: %s", exc)
-		await update.message.reply_text("Không thể gọi Groq API lúc này. Bạn thử lại sau.")
+		await reply_text_with_hint(update.message, "Không thể gọi Groq API lúc này. Bạn thử lại sau.")
 
 
 async def suggest_from_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1480,19 +1507,19 @@ async def suggest_from_text(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 		return
 
 	if is_order_in_progress(context):
-		await update.message.reply_text(
+		await reply_text_with_hint(update.message, 
 			"Bạn đang trong luồng đặt hàng. Nếu muốn đổi món, bấm /cancel rồi /start.\n"
 			"Nếu muốn AI gợi ý nhanh, dùng: /goiy <tất cả yêu cầu của bạn>"
 		)
 		return
 
-	await update.message.reply_text("Đã nhận yêu cầu. Đang gợi ý bằng Groq...")
+	await reply_text_with_hint(update.message, "Đã nhận yêu cầu. Đang gợi ý bằng Groq...")
 	try:
 		result = await to_thread(ask_groq_for_recommendation, request_text)
-		await update.message.reply_text(result)
+		await reply_text_with_hint(update.message, result)
 	except Exception as exc:
 		logger.exception("Loi goi Groq API tu text thuong: %s", exc)
-		await update.message.reply_text("Không thể gọi Groq API lúc này. Bạn thử lại sau.")
+		await reply_text_with_hint(update.message, "Không thể gọi Groq API lúc này. Bạn thử lại sau.")
 
 
 def build_app(token: str) -> Application:
@@ -1550,3 +1577,4 @@ def main() -> None:
 
 if __name__ == "__main__":
 	main()
+
