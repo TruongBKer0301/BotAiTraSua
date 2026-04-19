@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Menu Datnuoc</title>
+	<style>
+		:root {
+			--bg: #0e1320;
+			--bg-2: #131b2d;
+			--card: rgba(19, 27, 45, 0.88);
+			--line: rgba(255, 255, 255, 0.08);
+			--text: #f4f7fb;
+			--muted: #aab7cf;
+			--accent: #f8b84e;
+			--accent-2: #63d8c5;
+			--shadow: 0 18px 55px rgba(0, 0, 0, 0.35);
+		}
+
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+			color: var(--text);
+			background:
+				radial-gradient(circle at top left, rgba(248, 184, 78, 0.22), transparent 30%),
+				radial-gradient(circle at top right, rgba(99, 216, 197, 0.18), transparent 28%),
+				linear-gradient(160deg, #0b1020 0%, #10192c 55%, #0b1020 100%);
+			min-height: 100vh;
+		}
+
+		.shell {
+			max-width: 1180px;
+			margin: 0 auto;
+			padding: 28px 18px 40px;
+		}
+
+		.hero {
+			background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+			border: 1px solid var(--line);
+			border-radius: 28px;
+			padding: 28px;
+			box-shadow: var(--shadow);
+			backdrop-filter: blur(18px);
+			display: grid;
+			gap: 18px;
+			margin-bottom: 22px;
+		}
+
+		.eyebrow {
+			display: inline-flex;
+			align-items: center;
+			gap: 10px;
+			width: fit-content;
+			padding: 8px 14px;
+			border-radius: 999px;
+			background: rgba(248, 184, 78, 0.12);
+			color: #ffe0a5;
+			border: 1px solid rgba(248, 184, 78, 0.18);
+			font-size: 13px;
+			letter-spacing: 0.3px;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(2rem, 4vw, 3.4rem);
+			line-height: 1.05;
+		}
+
+		.subtext {
+			margin: 0;
+			max-width: 760px;
+			color: var(--muted);
+			font-size: 15px;
+			line-height: 1.7;
+		}
+
+		.toolbar {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr auto;
+			gap: 12px;
+			align-items: center;
+		}
+
+		.search,
+		.filter {
+			width: 100%;
+			border: 1px solid var(--line);
+			background: rgba(255,255,255,0.06);
+			color: var(--text);
+			border-radius: 16px;
+			padding: 14px 16px;
+			outline: none;
+			font-size: 15px;
+		}
+
+		.search::placeholder { color: #93a1bd; }
+
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 12px;
+			margin: 20px 0 26px;
+		}
+
+		.stat {
+			background: rgba(255,255,255,0.06);
+			border: 1px solid var(--line);
+			border-radius: 20px;
+			padding: 16px;
+		}
+
+		.stat .label {
+			display: block;
+			color: var(--muted);
+			font-size: 13px;
+			margin-bottom: 8px;
+		}
+
+		.stat .value {
+			font-size: 22px;
+			font-weight: 700;
+			color: #fff;
+		}
+
+		.section-title {
+			display: flex;
+			justify-content: space-between;
+			align-items: end;
+			gap: 10px;
+			margin: 28px 0 14px;
+		}
+
+		.section-title h2 {
+			margin: 0;
+			font-size: 22px;
+		}
+
+		.section-title span {
+			color: var(--muted);
+			font-size: 13px;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 16px;
+		}
+
+		.card {
+			position: relative;
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 22px;
+			padding: 18px;
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			transition: transform .2s ease, border-color .2s ease, opacity .2s ease;
+		}
+
+		.card:hover {
+			transform: translateY(-4px);
+			border-color: rgba(248, 184, 78, 0.28);
+		}
+
+		.category-badge {
+			display: inline-flex;
+			gap: 8px;
+			align-items: center;
+			padding: 7px 12px;
+			border-radius: 999px;
+			background: rgba(99, 216, 197, 0.12);
+			color: #b5fff2;
+			font-size: 12px;
+			margin-bottom: 14px;
+		}
+
+		.name {
+			margin: 0 0 8px;
+			font-size: 18px;
+			line-height: 1.4;
+		}
+
+		.meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			color: var(--muted);
+			font-size: 13px;
+			margin-bottom: 16px;
+		}
+
+		.price-row {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		.price {
+			background: rgba(255,255,255,0.06);
+			border: 1px solid var(--line);
+			border-radius: 16px;
+			padding: 14px;
+		}
+
+		.price .size {
+			display: block;
+			color: var(--muted);
+			font-size: 12px;
+			margin-bottom: 6px;
+			letter-spacing: 0.5px;
+		}
+
+		.price .money {
+			font-size: 19px;
+			font-weight: 700;
+			color: #fff;
+		}
+
+		.footer-note {
+			margin-top: 22px;
+			color: var(--muted);
+			font-size: 13px;
+			text-align: center;
+		}
+
+		.empty {
+			padding: 42px 18px;
+			text-align: center;
+			color: var(--muted);
+			border: 1px dashed rgba(255,255,255,0.16);
+			border-radius: 22px;
+			background: rgba(255,255,255,0.04);
+		}
+
+		@media (max-width: 900px) {
+			.toolbar, .stats { grid-template-columns: 1fr 1fr; }
+			.toolbar > :last-child { grid-column: 1 / -1; }
+		}
+
+		@media (max-width: 640px) {
+			.shell { padding: 16px 12px 28px; }
+			.hero { padding: 20px; border-radius: 22px; }
+			.toolbar, .stats, .price-row { grid-template-columns: 1fr; }
+			.section-title { align-items: flex-start; flex-direction: column; }
+		}
+	</style>
+</head>
+<body>
+	<main class="shell">
+		<section class="hero">
+			<div class="eyebrow">Menu quán nước · dữ liệu từ Menu.xlsx</div>
+			<h1>Menu trực quan với tên món, size và giá</h1>
+			<p class="subtext">
+				Giao diện này được dựng trực tiếp từ file <strong>Menu.xlsx</strong>, có tìm kiếm nhanh, lọc theo danh mục và hiển thị rõ giá size M/L.
+			</p>
+
+			<div class="toolbar">
+				<input id="searchBox" class="search" type="search" placeholder="Tìm theo tên món hoặc mã món..." />
+				<select id="categoryFilter" class="filter">
+					<option value="all">Tất cả danh mục</option>
+				</select>
+				<button id="resetBtn" class="filter" type="button">Xóa lọc</button>
+			</div>
+		</section>
+
+		<section class="stats" id="stats">
+			<div class="stat"><span class="label">Tổng món</span><div class="value" id="totalCount">0</div></div>
+			<div class="stat"><span class="label">Danh mục</span><div class="value" id="categoryCount">0</div></div>
+			<div class="stat"><span class="label">Giá thấp nhất</span><div class="value" id="minPrice">0đ</div></div>
+			<div class="stat"><span class="label">Giá cao nhất</span><div class="value" id="maxPrice">0đ</div></div>
+		</section>
+
+		<div id="menuRoot"></div>
+
+		<p class="footer-note">Mẹo: dùng ô tìm kiếm để lọc nhanh món theo tên hoặc mã, ví dụ TS01, Trà Sữa, Cà Phê.</p>
+	</main>
+
+	<script>
+		const menuData = [{"category":"Trà Sữa","item_id":"TS01","name":"Trà Sữa Trân Châu Đen","price_m":35000,"price_l":45000,"available":true},{"category":"Trà Sữa","item_id":"TS02","name":"Trà Sữa Trân Châu Trắng","price_m":35000,"price_l":45000,"available":true},{"category":"Trà Sữa","item_id":"TS03","name":"Trà Sữa Truyền Thống","price_m":30000,"price_l":40000,"available":true},{"category":"Trà Sữa","item_id":"TS04","name":"Trà Sữa Khoai Môn","price_m":38000,"price_l":48000,"available":true},{"category":"Trà Sữa","item_id":"TS05","name":"Trà Sữa Bạc Hà","price_m":35000,"price_l":45000,"available":true},{"category":"Trà Trái Cây","item_id":"TTG01","name":"Trà Dâu Tây","price_m":32000,"price_l":42000,"available":true},{"category":"Trà Trái Cây","item_id":"TTG02","name":"Trà Mâm Xôi","price_m":32000,"price_l":42000,"available":true},{"category":"Trà Trái Cây","item_id":"TTG03","name":"Trà Chanh Leo","price_m":30000,"price_l":40000,"available":true},{"category":"Trà Trái Cây","item_id":"TTG04","name":"Trà Vải Thiều","price_m":33000,"price_l":43000,"available":true},{"category":"Trà Trái Cây","item_id":"TTG05","name":"Trà Xoài","price_m":32000,"price_l":42000,"available":true},{"category":"Cà Phê","item_id":"CF01","name":"Cà Phê Đen","price_m":25000,"price_l":30000,"available":true},{"category":"Cà Phê","item_id":"CF02","name":"Cà Phê Sữa","price_m":28000,"price_l":33000,"available":true},{"category":"Cà Phê","item_id":"CF03","name":"Cà Phê Caramel","price_m":30000,"price_l":35000,"available":true},{"category":"Cà Phê","item_id":"CF04","name":"Cà Phê Mocha","price_m":32000,"price_l":37000,"available":true},{"category":"Cà Phê","item_id":"CF05","name":"Cà Phê Macchiato","price_m":27000,"price_l":32000,"available":true},{"category":"Đá Xay","item_id":"DX01","name":"Đá Xay Dâu Tây","price_m":35000,"price_l":45000,"available":true},{"category":"Đá Xay","item_id":"DX02","name":"Đá Xay Dừa","price_m":35000,"price_l":45000,"available":true},{"category":"Đá Xay","item_id":"DX03","name":"Đá Xay Matcha","price_m":38000,"price_l":48000,"available":true},{"category":"Đá Xay","item_id":"DX04","name":"Đá Xay Sôcôla","price_m":36000,"price_l":46000,"available":true},{"category":"Topping","item_id":"TOP01","name":"Trân Châu Đen","price_m":5000,"price_l":5000,"available":true},{"category":"Topping","item_id":"TOP02","name":"Trân Châu Trắng","price_m":5000,"price_l":5000,"available":true},{"category":"Topping","item_id":"TOP03","name":"Thạch Cà Chua","price_m":4000,"price_l":4000,"available":true},{"category":"Topping","item_id":"TOP04","name":"Thạch Xanh","price_m":4000,"price_l":4000,"available":true},{"category":"Topping","item_id":"TOP05","name":"Nước Cốt Dừa","price_m":6000,"price_l":6000,"available":true},{"category":"Topping","item_id":"TOP06","name":"Kem Tươi","price_m":8000,"price_l":8000,"available":true},{"category":"Topping","item_id":"TOP07","name":"Gelée Khoai Môn","price_m":5000,"price_l":5000,"available":true},{"category":"Topping","item_id":"TOP08","name":"Bột Trà Xanh","price_m":3000,"price_l":3000,"available":true}];
+
+		const state = {
+			search: '',
+			category: 'all'
+		};
+
+		const formatPrice = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
+		const normalize = (text) => (text || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+
+		const categories = [...new Set(menuData.map(item => item.category))];
+		const categoryFilter = document.getElementById('categoryFilter');
+		const searchBox = document.getElementById('searchBox');
+		const resetBtn = document.getElementById('resetBtn');
+		const menuRoot = document.getElementById('menuRoot');
+
+		categories.forEach(category => {
+			const option = document.createElement('option');
+			option.value = category;
+			option.textContent = category;
+			categoryFilter.appendChild(option);
+		});
+
+		function filteredItems() {
+			return menuData.filter(item => {
+				const matchesCategory = state.category === 'all' || item.category === state.category;
+				const haystack = normalize(`${item.name} ${item.item_id} ${item.category}`);
+				const matchesSearch = !state.search || haystack.includes(normalize(state.search));
+				return item.available && matchesCategory && matchesSearch;
+			});
+		}
+
+		function renderStats(items) {
+			const visibleCategories = new Set(items.map(item => item.category));
+			const prices = items.flatMap(item => [item.price_m, item.price_l]);
+			document.getElementById('totalCount').textContent = items.length;
+			document.getElementById('categoryCount').textContent = visibleCategories.size;
+			document.getElementById('minPrice').textContent = prices.length ? formatPrice(Math.min(...prices)) : '0đ';
+			document.getElementById('maxPrice').textContent = prices.length ? formatPrice(Math.max(...prices)) : '0đ';
+		}
+
+		function renderMenu() {
+			const items = filteredItems();
+			renderStats(items);
+
+			const grouped = items.reduce((acc, item) => {
+				(acc[item.category] ||= []).push(item);
+				return acc;
+			}, {});
+
+			if (!items.length) {
+				menuRoot.innerHTML = '<div class="empty">Không tìm thấy món phù hợp với bộ lọc hiện tại.</div>';
+				return;
+			}
+
+			menuRoot.innerHTML = Object.entries(grouped).map(([category, list]) => `
+				<section>
+					<div class="section-title">
+						<h2>${category}</h2>
+						<span>${list.length} món</span>
+					</div>
+					<div class="grid">
+						${list.map(item => `
+							<article class="card">
+								<div class="category-badge">${item.item_id}</div>
+								<h3 class="name">${item.name}</h3>
+								<div class="meta">
+									<span>Size M / L</span>
+									<span>•</span>
+									<span>${item.category}</span>
+								</div>
+								<div class="price-row">
+									<div class="price">
+										<span class="size">SIZE M</span>
+										<span class="money">${formatPrice(item.price_m)}</span>
+									</div>
+									<div class="price">
+										<span class="size">SIZE L</span>
+										<span class="money">${formatPrice(item.price_l)}</span>
+									</div>
+								</div>
+							</article>
+						`).join('')}
+					</div>
+				</section>
+			`).join('');
+		}
+
+		searchBox.addEventListener('input', (event) => {
+			state.search = event.target.value;
+			renderMenu();
+		});
+
+		categoryFilter.addEventListener('change', (event) => {
+			state.category = event.target.value;
+			renderMenu();
+		});
+
+		resetBtn.addEventListener('click', () => {
+			state.search = '';
+			state.category = 'all';
+			searchBox.value = '';
+			categoryFilter.value = 'all';
+			renderMenu();
+		});
+
+		renderMenu();
+	</script>
+</body>
+</html>
