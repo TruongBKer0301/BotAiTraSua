@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 # Giảm spam log khi mạng chập chờn liên tục trong lúc long polling.
 NETWORK_ERROR_LOG_COOLDOWN_SECONDS = 30
 _last_network_error_log_ts = 0.0
+PAYOS_STATUS_POLL_INTERVAL_SECONDS = int(os.getenv("PAYOS_STATUS_POLL_INTERVAL_SECONDS", "5"))
+PAYOS_STATUS_POLL_TIMEOUT_SECONDS = int(os.getenv("PAYOS_STATUS_POLL_TIMEOUT_SECONDS", "900"))
 
 
 MENU_XLSX_FILE = Path(__file__).with_name("Menu.xlsx")
@@ -380,6 +382,70 @@ def create_payos_payment_link(context: ContextTypes.DEFAULT_TYPE, phone_number: 
 
 def build_qr_image_url(qr_data: str) -> str:
 	return f"https://api.qrserver.com/v1/create-qr-code/?size=320x320&data={quote_plus(qr_data)}"
+
+
+def get_payos_payment_status(order_code: str) -> str:
+	client_id, api_key, _ = get_payos_config()
+	if not client_id or not api_key:
+		raise RuntimeError("Thiếu cấu hình PayOS để kiểm tra trạng thái thanh toán")
+
+	response = httpx.get(
+		f"{PAYOS_API_BASE_URL}/v2/payment-requests/{order_code}",
+		headers={
+			"x-client-id": client_id,
+			"x-api-key": api_key,
+			"Content-Type": "application/json",
+		},
+		timeout=30,
+	)
+	response.raise_for_status()
+	payload = response.json()
+	if str(payload.get("code", "")) != "00":
+		raise RuntimeError(f"PayOS trả lỗi khi kiểm tra trạng thái: {payload.get('desc', 'unknown error')}")
+
+	data = payload.get("data") or {}
+	status_candidates = (
+		data.get("status"),
+		data.get("paymentStatus"),
+		data.get("transactionStatus"),
+	)
+	for status in status_candidates:
+		if status:
+			return str(status).strip().upper()
+	return ""
+
+
+async def monitor_payos_payment(
+	context: ContextTypes.DEFAULT_TYPE,
+	chat_id: int,
+	order_code: str,
+) -> None:
+	deadline = time.time() + max(PAYOS_STATUS_POLL_TIMEOUT_SECONDS, 60)
+	paid_statuses = {"PAID", "SUCCESS", "SUCCEEDED", "COMPLETED"}
+	stop_statuses = {"CANCELLED", "CANCELED", "EXPIRED", "FAILED"}
+
+	while time.time() < deadline:
+		try:
+			status = await to_thread(get_payos_payment_status, order_code)
+		except Exception as exc:
+			logger.warning("Khong kiem tra duoc trang thai thanh toan cho don %s: %s", order_code, exc)
+			await asyncio.sleep(max(PAYOS_STATUS_POLL_INTERVAL_SECONDS, 3))
+			continue
+
+		if status in paid_statuses:
+			await context.bot.send_message(
+				chat_id=chat_id,
+				text="Bạn đã chuyển khoản thành công, Quán sẽ gọi cho bạn ngay !",
+			)
+			return
+
+		if status in stop_statuses:
+			logger.info("Dung theo doi don %s do trang thai %s", order_code, status)
+			return
+
+		await asyncio.sleep(max(PAYOS_STATUS_POLL_INTERVAL_SECONDS, 3))
+
+	logger.info("Het thoi gian theo doi thanh toan cho don %s", order_code)
 
 
 def ask_groq_for_recommendation(user_request: str) -> str:
@@ -1326,6 +1392,15 @@ async def on_payment_phone_input(update: Update, context: ContextTypes.DEFAULT_T
 		await update.message.reply_photo(photo=build_qr_image_url(qr_data), caption="\n".join(caption_lines))
 	else:
 		await update.message.reply_text("\n".join(caption_lines))
+
+	if order_code is not None and update.effective_chat:
+		asyncio.create_task(
+			monitor_payos_payment(
+				context=context,
+				chat_id=update.effective_chat.id,
+				order_code=str(order_code),
+			)
+		)
 
 	context.user_data.clear()
 	return ConversationHandler.END
